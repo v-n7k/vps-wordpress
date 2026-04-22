@@ -1,0 +1,53 @@
+###################
+# - VPS - #
+###################
+name: vps-wordpress
+
+############
+# Services #
+############
+services:
+    portainer:
+        container_name: portainer
+        image: portainer/portainer-ce:sts
+        restart: always
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./volumes/portainer:/data
+        ports:
+            - 9443:9443
+#      - 8000:8000  # Remove if you do not intend to use Edge Agents
+
+    db:
+        image: mysql:8
+        restart: always
+        env_file: .env
+        volumes:
+            - ./volumes/mysql8:/var/lib/mysql
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin:latest
+        restart: always
+        depends_on:
+            - db
+        environment:
+            PMA_HOST: db
+#            MYSQL_ROOT_PASSWORD: db_root_password
+        ports:
+            - "8080:8080"
+
+    wordpress:
+        container_name: wordpress
+        image: wordpress
+        restart: always
+        depends_on:
+            - db
+        ports:
+            - 8080:80
+        environment:
+            WORDPRESS_DB_HOST: db
+            WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
+            WORDPRESS_DB_USER: ${MYSQL_USER:-wp_user}
+            WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wp_pass}
+        volumes:
+            - ./volumes/wordpress:/var/www/html
