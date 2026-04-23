@@ -37,6 +37,8 @@ services:
 #            MYSQL_ROOT_PASSWORD: db_root_password
         ports:
             - "8080:80"
+        volumes:
+            - ./volumes/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
 
     wordpress:
         container_name: vps-wordpress
@@ -53,3 +55,4 @@ services:
             WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wp_pass}
         volumes:
             - ./volumes/wordpress:/var/www/html
+            - ./volumes/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
