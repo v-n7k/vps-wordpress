@@ -1,0 +1,2 @@
+-- CREATE DATABASE IF NOT EXISTS `phpmyadmin`;
+CREATE DATABASE IF NOT EXISTS `wordpress`;

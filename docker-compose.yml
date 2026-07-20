@@ -10,13 +10,16 @@ services:
     portainer:
         container_name: vps-portainer
         image: portainer/portainer-ce:sts
+        hostname: ${PORTAINER_HOST:-portainer}
+        domainname: ${PORTAINER_DOMAIN:-${CORE_DOMAIN:-localhost}}
+        labels:
+            nginx.auth: "true"
+            nginx.schema: "https"
+            nginx.port: "9443"
         restart: always
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - ./volumes/portainer:/data
-        ports:
-            - 9443:9443
-#      - 8000:8000  # Remove if you do not intend to use Edge Agents
 
     db:
         container_name: vps-db
@@ -26,34 +29,49 @@ services:
         volumes:
             - ./volumes/mysql8:/var/lib/mysql
             - ./configs/mysql/performance.cnf:/etc/mysql/conf.d/performance.cnf
+            - ./configs/mysql/init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql:ro
 
     phpmyadmin:
         container_name: vps-phpmyadmin
         image: phpmyadmin/phpmyadmin:latest
+        hostname: ${PMA_HOST:-pma}
+        domainname: ${PMA_DOMAIN:-${CORE_DOMAIN:-localhost}}
+        labels:
+            nginx.auth: "true"
         restart: always
         depends_on:
             - db
         environment:
             PMA_HOST: db
-#            MYSQL_ROOT_PASSWORD: db_root_password
-        ports:
-            - "8080:80"
+#            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
         volumes:
             - ./configs/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
 
     wordpress:
         container_name: vps-wordpress
         image: wordpress
+        hostname: ${WP_HOST:-www}
+        domainname: ${WP_DOMAIN:-${CORE_DOMAIN:-localhost}}
         restart: always
         depends_on:
             - db
-        ports:
-            - 80:80
         environment:
             WORDPRESS_DB_HOST: db
-            WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
-            WORDPRESS_DB_USER: ${MYSQL_USER:-wp_user}
-            WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wp_pass}
+            WORDPRESS_DB_NAME: wordpress
+            WORDPRESS_DB_USER: ${MYSQL_USER}
+            WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
         volumes:
             - ./volumes/wordpress:/var/www/html
             - ./configs/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+
+    nginx:
+        container_name: vps-nginx
+        image: nginx:alpine
+        restart: always
+        ports:
+            - "443:443"
+        volumes:
+            - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            # Clean, dedicated directory for your 15-year Cloudflare keys
+            - ./certs:/etc/nginx/certs:ro
+            - ./auth:/etc/nginx/auth:ro # Directory holding .htpasswd
