@@ -4,6 +4,8 @@
 CONF_FILE="./configs/nginx/nginx.conf"
 AUTH_FILE="./auth/.htpasswd"
 
+git update-index --assume-unchanged "$CONF_FILE" "$AUTH_FILE"
+
 echo "Initializing proxy generation sequence..."
 
 # 1. Safely load variables directly from .env (Best Practice for secrets)
