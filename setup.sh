@@ -55,7 +55,13 @@ docker compose config --format json | jq -r '
   "\(.key)|\(.value.hostname)|\(.value.domainname)|\((.value.labels // {})["nginx.schema"] // "http")|\((.value.labels // {})["nginx.port"] // "80")|\((.value.labels // {})["nginx.auth"] // "false")"
 ' | while IFS="|" read -r svc hostname domainname schema port auth; do
 
-    echo " -> Mapping vhost: ${hostname}.${domainname} to ${schema}://${svc}:${port} (Auth: ${auth})"
+    # www hosts also answer for the bare (apex) domain
+    SERVER_NAME="${hostname}.${domainname}"
+    if [ "$hostname" = "www" ]; then
+        SERVER_NAME="${SERVER_NAME} ${domainname}"
+    fi
+
+    echo " -> Mapping vhost: ${SERVER_NAME} to ${schema}://${svc}:${port} (Auth: ${auth})"
 
     # Generate optional Basic Auth block
     AUTH_CONF=""
@@ -69,7 +75,7 @@ docker compose config --format json | jq -r '
     cat << EOF >> "$CONF_FILE"
     server {
         listen 443 ssl;
-        server_name ${hostname}.${domainname};
+        server_name ${SERVER_NAME};
 
         location / {
             proxy_pass ${schema}://${svc}:${port};
